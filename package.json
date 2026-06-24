@@ -23,6 +23,7 @@
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
+    "lightningcss-win32-x64-msvc": "1.32.0",
     "nativewind": "^4.2.4",
     "react": "19.1.0",
     "react-hook-form": "^7.79.0",

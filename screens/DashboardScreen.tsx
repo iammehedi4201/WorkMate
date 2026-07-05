@@ -66,6 +66,8 @@ export default function DashboardScreen({ onNavigateAttendance }: DashboardScree
     }
   };
 
+  console.log('user -- >', user);
+
   return (
     <View className="flex-1 bg-[#020202]">
       {/* Main Content Scroll */}

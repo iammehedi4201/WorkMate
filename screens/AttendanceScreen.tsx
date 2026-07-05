@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +43,8 @@ type AttendanceStatus =
   | 'annual'
   | 'latepenalty'
   | 'holiday'
-  | 'weekend';
+  | 'weekend'
+  | 'none';
 
 interface DayAttendance {
   date: number; // 1-31
@@ -60,10 +61,7 @@ function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
-function isWeekend(year: number, month: number, day: number) {
-  const d = new Date(year, month, day).getDay();
-  return d === 0 || d === 6;
-}
+
 
 function getJsDay(year: number, month: number, day: number) {
   return new Date(year, month, day).getDay();
@@ -72,8 +70,9 @@ function getJsDay(year: number, month: number, day: number) {
 const mapStatus = (name?: string): AttendanceStatus => {
   if (!name) return 'absent';
   const lower = name.toLowerCase();
-  if (lower.includes('present')) return 'present';
-  if (lower.includes('late penalty')) return 'latepenalty';
+  if (lower.includes('present') || lower.includes('on time') || lower.includes('half day'))
+    return 'present';
+  if (lower.includes('penalty')) return 'latepenalty';
   if (lower.includes('late')) return 'late';
   if (lower.includes('absent')) return 'absent';
   if (lower.includes('sick')) return 'sick';
@@ -86,7 +85,7 @@ const mapStatus = (name?: string): AttendanceStatus => {
 function buildAttendanceDataFromBackend(
   year: number,
   month: number,
-  backendLogs: BackendAttendance[]
+  backendLogs: BackendAttendance[],
 ): DayAttendance[] {
   const total = getDaysInMonth(year, month);
   const today = new Date();
@@ -117,17 +116,17 @@ function buildAttendanceDataFromBackend(
       result.push({
         date: d,
         status: mapStatus(log.attendanceStatus?.name),
-        checkIn: log.checkIn || undefined,
-        checkOut: log.checkOut || undefined,
-        hours: log.workTime ? `${Math.floor(log.workTime / 60)}h ${log.workTime % 60}m` : undefined,
+        checkIn: log.startTime || undefined,
+        checkOut: log.endTime || undefined,
+        hours: undefined,
         note: log.note || undefined,
       });
     } else if (weekend) {
       result.push({ date: d, status: 'weekend' });
     } else if (isFuture) {
-      result.push({ date: d, status: 'absent' });
+      result.push({ date: d, status: 'none' });
     } else {
-      result.push({ date: d, status: 'absent', note: 'No record' });
+      result.push({ date: d, status: 'none', note: 'No record' });
     }
   }
   return result;
@@ -153,13 +152,21 @@ const STATUS_CONFIG: Record<
     bg: '#0d2818',
     border: '#1a4d2e',
   },
+  none: {
+    label: 'None',
+    icon: 'remove',
+    iconFamily: 'ionicons',
+    color: '#555555',
+    bg: '#111111',
+    border: '#222222',
+  },
   late: {
     label: 'Late',
     icon: 'time-outline',
     iconFamily: 'ionicons',
-    color: '#f1c40f',
-    bg: '#1f1a00',
-    border: '#4a3f00',
+    color: '#e67e22',
+    bg: '#1f1300',
+    border: '#4a2d00',
   },
   absent: {
     label: 'Absent',
@@ -187,11 +194,11 @@ const STATUS_CONFIG: Record<
   },
   latepenalty: {
     label: 'Late Penalty',
-    icon: 'alert-circle-outline',
+    icon: 'warning-outline',
     iconFamily: 'ionicons',
     color: '#e67e22',
-    bg: '#1f0a00',
-    border: '#4a1a00',
+    bg: '#1f1300',
+    border: '#4a2d00',
   },
   holiday: {
     label: 'Holiday',
@@ -531,24 +538,32 @@ function TimelineCalendar({
 
         {/* Legend */}
         <View className="flex-row flex-wrap justify-center gap-x-4 gap-y-3 px-4 pb-4 pt-3 border-t border-[#1a1a1a]">
-          {(['present', 'late', 'absent', 'sick', 'annual', 'weekend'] as AttendanceStatus[]).map(
-            s => (
-              <View key={s} className="flex-row items-center gap-1.5">
-                <View
-                  className="w-5 h-5 rounded-lg items-center justify-center"
-                  style={{
-                    backgroundColor: STATUS_CONFIG[s].bg,
-                    borderWidth: 1,
-                    borderColor: STATUS_CONFIG[s].border,
-                  }}>
-                  <StatusIcon status={s} size={11} />
-                </View>
-                <Text className="text-[#555555] text-[10px] font-semibold">
-                  {STATUS_CONFIG[s].label}
-                </Text>
+          {(
+            [
+              'present',
+              'late',
+              'latepenalty',
+              'absent',
+              'sick',
+              'annual',
+              'weekend',
+            ] as AttendanceStatus[]
+          ).map(s => (
+            <View key={s} className="flex-row items-center gap-1.5">
+              <View
+                className="w-5 h-5 rounded-lg items-center justify-center"
+                style={{
+                  backgroundColor: STATUS_CONFIG[s].bg,
+                  borderWidth: 1,
+                  borderColor: STATUS_CONFIG[s].border,
+                }}>
+                <StatusIcon status={s} size={11} />
               </View>
-            ),
-          )}
+              <Text className="text-[#555555] text-[10px] font-semibold">
+                {STATUS_CONFIG[s].label}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -636,7 +651,7 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
     const latePenalty = attendance.filter(d => d.status === 'latepenalty').length;
     const weekends = attendance.filter(d => d.status === 'weekend').length;
     const workingDays = getDaysInMonth(selectedYear, selectedMonth) - weekends;
-    
+
     const annualLeaveTotal = leavesData.recLeaves || 17;
     const annualLeaveTaken = leavesData.totalRecreationLeaveTaken || 0;
     const sickLeaveTotal = leavesData.sickLeaves || 7;
@@ -855,13 +870,13 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
             value={stats.annualLeave}
           />
           <StatBox
-            icon={<Ionicons name="time-outline" size={16} color="#f1c40f" />}
+            icon={<Ionicons name="time-outline" size={16} color="#e67e22" />}
             label="Late"
             value={stats.late}
           />
           <StatBox
-            icon={<Ionicons name="alert-circle-outline" size={16} color="#e67e22" />}
-            label={'Late With\nPenalty'}
+            icon={<Ionicons name="warning-outline" size={16} color="#e67e22" />}
+            label={'Late Penalty'}
             value={stats.latePenalty}
           />
         </View>

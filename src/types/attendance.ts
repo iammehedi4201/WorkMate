@@ -7,9 +7,8 @@ export interface AttendanceStatus {
 export interface BackendAttendance {
   _id: string;
   date: string;
-  checkIn?: string;
-  checkOut?: string;
-  workTime?: number;
+  startTime?: string;
+  endTime?: string;
   attendanceStatus?: AttendanceStatus;
   note?: string;
 }

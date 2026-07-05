@@ -101,7 +101,7 @@ export default function DashboardTasksModal({ isVisible, onClose }: DashboardTas
 
           {/* Tab Selector */}
           <View className="flex-row bg-[#161616] p-1.5 rounded-xl border border-[#222222] mb-5">
-            {(['Pending', 'Completed', 'Archived'] as const).map(tab => {
+            {(['Pending', 'In Progress', 'Completed', 'Archived'] as const).map(tab => {
               const isActive = activeTab === tab;
               return (
                 <TouchableOpacity

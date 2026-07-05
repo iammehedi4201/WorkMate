@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  TextInput as TextInputType,
   Image,
   TextInput,
 } from 'react-native';
@@ -15,24 +14,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth, useToast, useKeyboardAvoidance } from '../../src/hooks';
+import { useToast, useKeyboardAvoidance } from '../../src/hooks';
 import { useRouter } from 'expo-router';
 
-const loginSchema = z.object({
+const forgotSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type ForgotFormValues = z.infer<typeof forgotSchema>;
 
-export default function LoginScreen() {
-  const { login } = useAuth();
+export default function ForgotPasswordScreen() {
   const { showToast } = useToast();
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-
-  const passwordRef = useRef<TextInputType>(null);
 
   const { scrollViewRef, keyboardHeight, handleFieldLayout, scrollToField } =
     useKeyboardAvoidance();
@@ -41,28 +34,29 @@ export default function LoginScreen() {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<ForgotFormValues>({
+    resolver: zodResolver(forgotSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormValues) => {
-      return await login(data.email, data.password);
+  const resetMutation = useMutation({
+    mutationFn: async (data: ForgotFormValues) => {
+      // Simulate API call - replace with actual service call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return { email: data.email };
     },
-    onSuccess: (data) => {
-      showToast(`Welcome back, ${data.user.name || 'User'}!`, 'success');
+    onSuccess: (_, variables) => {
+      showToast(`Reset link sent to ${variables.email}`, 'success');
     },
     onError: (error: Error) => {
-      showToast(error.message || 'Login failed. Please try again.', 'error');
+      showToast(error.message || 'Failed to send reset link. Please try again.', 'error');
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data);
+  const onSubmit = (data: ForgotFormValues) => {
+    resetMutation.mutate(data);
   };
 
   return (
@@ -101,7 +95,7 @@ export default function LoginScreen() {
                   marginLeft: 12,
                   letterSpacing: 0.3,
                 }}>
-                  Login Ant App
+                  Forgot Password Ant App
                 </Text>
               </View>
 
@@ -119,7 +113,7 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field: { onChange, value } }) => (
                     <View
-                      style={{ marginBottom: 20 }}
+                      style={{ marginBottom: 24 }}
                       onLayout={handleFieldLayout('email')}>
                       <Text style={{
                         color: '#ffffff',
@@ -137,8 +131,8 @@ export default function LoginScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        returnKeyType="next"
-                        onSubmitEditing={() => passwordRef.current?.focus()}
+                        returnKeyType="done"
+                        onSubmitEditing={handleSubmit(onSubmit)}
                         onFocus={() => scrollToField('email')}
                         style={{
                           backgroundColor: '#2c2c2c',
@@ -160,95 +154,36 @@ export default function LoginScreen() {
                   )}
                 />
 
-                {/* Password Field */}
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, value } }) => (
-                    <View
-                      style={{ marginBottom: 8 }}
-                      onLayout={handleFieldLayout('password')}>
-                      <Text style={{
-                        color: '#ffffff',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        marginBottom: 8,
-                      }}>
-                        Password
-                      </Text>
-                      <View style={{
-                        backgroundColor: '#2c2c2c',
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: errors.password ? '#ef4444' : '#3a3a3a',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                      }}>
-                        <TextInput
-                          ref={passwordRef}
-                          value={value}
-                          onChangeText={onChange}
-                          placeholder="••••••••"
-                          placeholderTextColor="#555"
-                          secureTextEntry={!showPassword}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          returnKeyType="done"
-                          onSubmitEditing={handleSubmit(onSubmit)}
-                          onFocus={() => scrollToField('password')}
-                          style={{
-                            flex: 1,
-                            color: '#ffffff',
-                            fontSize: 14,
-                            paddingHorizontal: 14,
-                            paddingVertical: 12,
-                          }}
-                        />
-                        <TouchableOpacity
-                          onPress={() => setShowPassword(!showPassword)}
-                          style={{ paddingHorizontal: 14 }}>
-                          <Ionicons
-                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                            size={20}
-                            color="#888"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                      {errors.password && (
-                        <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>
-                          {errors.password.message}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                />
-
-                {/* Login Button */}
+                {/* Send Reset Link Button */}
                 <TouchableOpacity
                   onPress={handleSubmit(onSubmit)}
-                  disabled={loginMutation.isPending}
+                  disabled={resetMutation.isPending}
                   style={{
                     backgroundColor: '#f5f5f5',
                     borderRadius: 8,
                     paddingVertical: 14,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginTop: 20,
-                    opacity: loginMutation.isPending ? 0.7 : 1,
+                    opacity: resetMutation.isPending ? 0.7 : 1,
                   }}>
-                  {loginMutation.isPending ? (
+                  {resetMutation.isPending ? (
                     <ActivityIndicator color="#c8930a" size="small" />
                   ) : (
-                    <Text style={{ color: '#c8930a', fontSize: 15, fontWeight: '700' }}>Login</Text>
+                    <Text style={{ color: '#c8930a', fontSize: 15, fontWeight: '600' }}>
+                      Send Reset Link
+                    </Text>
                   )}
                 </TouchableOpacity>
 
-                {/* Forgot Password Link */}
-                <TouchableOpacity
-                  onPress={() => router.push('/(auth)/forgot-password')}
-                  style={{ alignSelf: 'flex-end', marginTop: 14 }}>
-                  <Text style={{ color: '#c8930a', fontSize: 13 }}>Forgot password?</Text>
-                </TouchableOpacity>
+                {/* Back to Login */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14, alignItems: 'center' }}>
+                  <Text style={{ color: '#c8930a', fontSize: 13 }}>Want to sign in? </Text>
+                  <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+                    <Text style={{ color: '#c8930a', fontSize: 13, textDecorationLine: 'underline' }}>
+                      Login
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
               </View>
             </View>

@@ -9,6 +9,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore } from '../store/useTaskStore';
@@ -28,6 +29,7 @@ export default function CreateTaskModal({ isVisible, onClose }: CreateTaskModalP
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(5); // June is index 5
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const months = [
     'January',
@@ -44,7 +46,7 @@ export default function CreateTaskModal({ isVisible, onClose }: CreateTaskModalP
     'December',
   ];
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!description.trim()) {
       showToast('Please enter a task description', 'error');
       return;
@@ -59,17 +61,23 @@ export default function CreateTaskModal({ isVisible, onClose }: CreateTaskModalP
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
 
-    addTask({
-      title: description.trim(),
-      dueDate: dateString,
-      status: 'Pending',
-      emoji: '🍄',
-    });
-
-    showToast('Task created successfully', 'success');
-    setDescription('');
-    setSelectedDate(null);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await addTask({
+        title: description.trim(),
+        dueDate: dateString,
+        status: 'Pending',
+        emoji: '🍄',
+      });
+      showToast('Task created successfully', 'success');
+      setDescription('');
+      setSelectedDate(null);
+      onClose();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to create task', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -180,8 +188,15 @@ export default function CreateTaskModal({ isVisible, onClose }: CreateTaskModalP
 
                 <TouchableOpacity
                   onPress={handleCreate}
-                  className="mt-6 w-full bg-white active:bg-slate-200 py-4 rounded-xl items-center justify-center shadow-md">
-                  <Text className="text-black text-base font-bold">Create Task</Text>
+                  disabled={isSubmitting}
+                  className={`mt-6 w-full bg-white active:bg-slate-200 py-4 rounded-xl items-center justify-center shadow-md ${
+                    isSubmitting ? 'opacity-70' : ''
+                  }`}>
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#000000" />
+                  ) : (
+                    <Text className="text-black text-base font-bold">Create Task</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>

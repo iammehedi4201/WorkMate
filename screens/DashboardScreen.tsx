@@ -15,11 +15,15 @@ interface DashboardScreenProps {
 
 export default function DashboardScreen({ onNavigateAttendance }: DashboardScreenProps) {
   const { user } = useAuth();
-  const { tasks } = useTaskStore();
+  const { tasks, fetchTasks } = useTaskStore();
 
   const [isCreateVisible, setIsCreateVisible] = useState(false);
   const [isAllTasksVisible, setIsAllTasksVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  React.useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   useHeader({
     showLogo: true,
@@ -32,8 +36,8 @@ export default function DashboardScreen({ onNavigateAttendance }: DashboardScree
     },
   });
 
-  // Get pending tasks
-  const pendingTasks = tasks.filter(t => t.status === 'Pending');
+  // Get pending / in progress tasks
+  const pendingTasks = tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress');
   const pendingCount = pendingTasks.length;
 
   // Format date remaining text
@@ -74,7 +78,7 @@ export default function DashboardScreen({ onNavigateAttendance }: DashboardScree
           <View className="w-20 h-20 rounded-lg overflow-hidden p-1  justify-center items-center">
             <Image
               source={{
-                uri: 'https://cdn-icons-png.flaticon.com/512/2919/2919906.png',
+                uri: `${process.env.EXPO_PUBLIC_SPACES_URL}${user?.dp}`,
               }}
               style={{ width: '100%', height: '100%', borderRadius: 20 }}
               contentFit="contain"
@@ -87,7 +91,7 @@ export default function DashboardScreen({ onNavigateAttendance }: DashboardScree
             </Text>
             <View className="self-start border border-[#333333] px-3 py-1 rounded-lg bg-[#111111]/45">
               <Text className="text-[#888888] text-[11px] font-semibold uppercase tracking-wider">
-                software engineer
+                {user?.designations?.[0] || 'Employee'}
               </Text>
             </View>
           </View>
@@ -141,7 +145,7 @@ export default function DashboardScreen({ onNavigateAttendance }: DashboardScree
             </View>
           ) : (
             <ScrollView
-              style={{ maxHeight: 200 }}
+              style={{ maxHeight: 200, height: 200 }}
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}>
               <View className="flex flex-col gap-y-3 p-3">

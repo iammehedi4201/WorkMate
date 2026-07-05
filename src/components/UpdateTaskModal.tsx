@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore, Task } from '../store/useTaskStore';
@@ -27,6 +28,7 @@ export default function UpdateTaskModal({ isVisible, onClose, task }: UpdateTask
   const [description, setDescription] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [status, setStatus] = useState<Task['status']>('Pending');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -49,7 +51,7 @@ export default function UpdateTaskModal({ isVisible, onClose, task }: UpdateTask
     'December',
   ];
 
-  const statusOptions: Task['status'][] = ['Pending', 'Completed', 'Archived'];
+  const statusOptions: Task['status'][] = ['Pending', 'In Progress', 'Completed', 'Archived'];
 
   // Sync state with selected task
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function UpdateTaskModal({ isVisible, onClose, task }: UpdateTask
     }
   }, [task, isVisible]);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!task) return;
     if (!description.trim()) {
       showToast('Please enter a task description', 'error');
@@ -88,14 +90,20 @@ export default function UpdateTaskModal({ isVisible, onClose, task }: UpdateTask
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
 
-    updateTask(task.id, {
-      title: description.trim(),
-      dueDate: dateString,
-      status,
-    });
-
-    showToast('Task updated successfully', 'success');
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await updateTask(task.id, {
+        title: description.trim(),
+        dueDate: dateString,
+        status,
+      });
+      showToast('Task updated successfully', 'success');
+      onClose();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update task', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -209,8 +217,15 @@ export default function UpdateTaskModal({ isVisible, onClose, task }: UpdateTask
 
                 <TouchableOpacity
                   onPress={handleUpdate}
-                  className="mt-6 w-full bg-white active:bg-slate-200 py-4 rounded-xl items-center justify-center shadow-md">
-                  <Text className="text-black text-base font-bold">Update Task</Text>
+                  disabled={isSubmitting}
+                  className={`mt-6 w-full bg-white active:bg-slate-200 py-4 rounded-xl items-center justify-center shadow-md ${
+                    isSubmitting ? 'opacity-70' : ''
+                  }`}>
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#000000" />
+                  ) : (
+                    <Text className="text-black text-base font-bold">Update Task</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>

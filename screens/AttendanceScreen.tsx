@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, Dimensions, StyleSheet } from 'react-native';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Modal, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../src/hooks/useAuth';
 import { useHeader } from '../src/context/HeaderContext';
+import { attendanceService } from '../src/services/attendanceService';
+import { BackendAttendance } from '../src/types/attendance';
 
 interface AttendanceScreenProps {
   onNavigateDashboard: () => void;
@@ -67,49 +69,65 @@ function getJsDay(year: number, month: number, day: number) {
   return new Date(year, month, day).getDay();
 }
 
-/** Simulated attendance data for the selected month */
-function buildAttendanceData(year: number, month: number): DayAttendance[] {
+const mapStatus = (name?: string): AttendanceStatus => {
+  if (!name) return 'absent';
+  const lower = name.toLowerCase();
+  if (lower.includes('present')) return 'present';
+  if (lower.includes('late penalty')) return 'latepenalty';
+  if (lower.includes('late')) return 'late';
+  if (lower.includes('absent')) return 'absent';
+  if (lower.includes('sick')) return 'sick';
+  if (lower.includes('annual')) return 'annual';
+  if (lower.includes('holiday')) return 'holiday';
+  if (lower.includes('weekend')) return 'weekend';
+  return 'absent';
+};
+
+function buildAttendanceDataFromBackend(
+  year: number,
+  month: number,
+  backendLogs: BackendAttendance[]
+): DayAttendance[] {
   const total = getDaysInMonth(year, month);
   const today = new Date();
   const result: DayAttendance[] = [];
+
+  const logMap = new Map<number, BackendAttendance>();
+  backendLogs.forEach(log => {
+    if (log.date) {
+      const datePart = typeof log.date === 'string' ? log.date.split('T')[0] : '';
+      const parts = datePart.split('-');
+      if (parts.length === 3) {
+        const d = parseInt(parts[2], 10);
+        logMap.set(d, log);
+      } else {
+        const d = new Date(log.date).getDate();
+        logMap.set(d, log);
+      }
+    }
+  });
 
   for (let d = 1; d <= total; d++) {
     const jsDay = new Date(year, month, d).getDay();
     const weekend = jsDay === 0 || jsDay === 6;
     const isFuture = new Date(year, month, d) > today;
 
-    if (weekend) {
+    const log = logMap.get(d);
+    if (log) {
+      result.push({
+        date: d,
+        status: mapStatus(log.attendanceStatus?.name),
+        checkIn: log.checkIn || undefined,
+        checkOut: log.checkOut || undefined,
+        hours: log.workTime ? `${Math.floor(log.workTime / 60)}h ${log.workTime % 60}m` : undefined,
+        note: log.note || undefined,
+      });
+    } else if (weekend) {
       result.push({ date: d, status: 'weekend' });
     } else if (isFuture) {
-      result.push({ date: d, status: 'absent' }); // future = not yet
+      result.push({ date: d, status: 'absent' });
     } else {
-      // Simulate varied statuses for past working days
-      const seed = (year * 31 + month * 7 + d) % 10;
-      if (seed < 6) {
-        result.push({
-          date: d,
-          status: 'present',
-          checkIn: '09:00 AM',
-          checkOut: '06:00 PM',
-          hours: '9h 00m',
-          overtime: seed > 4 ? '1h 00m' : undefined,
-        });
-      } else if (seed === 6) {
-        result.push({
-          date: d,
-          status: 'late',
-          checkIn: '10:30 AM',
-          checkOut: '06:00 PM',
-          hours: '7h 30m',
-          note: 'Late arrival',
-        });
-      } else if (seed === 7) {
-        result.push({ date: d, status: 'absent', note: 'Unexcused' });
-      } else if (seed === 8) {
-        result.push({ date: d, status: 'sick', note: 'Medical leave' });
-      } else {
-        result.push({ date: d, status: 'annual', note: 'Annual leave' });
-      }
+      result.push({ date: d, status: 'absent', note: 'No record' });
     }
   }
   return result;
@@ -555,6 +573,43 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
   const [viewMode, setViewMode] = useState<'percent' | 'count'>('percent');
   const [pickerYear, setPickerYear] = useState(today.getFullYear());
 
+  const [backendLogs, setBackendLogs] = useState<BackendAttendance[]>([]);
+  const [leavesData, setLeavesData] = useState<any>({
+    recLeaves: 17,
+    sickLeaves: 7,
+    totalRecreationLeaveTaken: 0,
+    totalSicksLeaveTaken: 0,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const startYear = selectedYear;
+        const startMonth = String(selectedMonth + 1).padStart(2, '0');
+        const startDate = `${startYear}-${startMonth}-01`;
+        const lastDay = getDaysInMonth(selectedYear, selectedMonth);
+        const endDate = `${startYear}-${startMonth}-${String(lastDay).padStart(2, '0')}T23:59:59`;
+
+        const data = await attendanceService.getMyMonthlyAttendance(startDate, endDate);
+        if (active) {
+          setBackendLogs(data.attendances || []);
+          setLeavesData(data.leaves || {});
+        }
+      } catch (error) {
+        console.error('Failed to load monthly attendance:', error);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [selectedYear, selectedMonth]);
+
   useHeader({
     title: 'My Attendance',
     showBack: true,
@@ -568,8 +623,8 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
 
   // ─── Data ──────────────────────────────────────────────────────────────────
   const attendance = useMemo(
-    () => buildAttendanceData(selectedYear, selectedMonth),
-    [selectedYear, selectedMonth],
+    () => buildAttendanceDataFromBackend(selectedYear, selectedMonth, backendLogs),
+    [selectedYear, selectedMonth, backendLogs],
   );
 
   const stats = useMemo(() => {
@@ -581,6 +636,12 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
     const latePenalty = attendance.filter(d => d.status === 'latepenalty').length;
     const weekends = attendance.filter(d => d.status === 'weekend').length;
     const workingDays = getDaysInMonth(selectedYear, selectedMonth) - weekends;
+    
+    const annualLeaveTotal = leavesData.recLeaves || 17;
+    const annualLeaveTaken = leavesData.totalRecreationLeaveTaken || 0;
+    const sickLeaveTotal = leavesData.sickLeaves || 7;
+    const sickLeaveTaken = leavesData.totalSicksLeaveTaken || 0;
+
     return {
       present,
       late,
@@ -590,14 +651,14 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
       latePenalty,
       weekends,
       workingDays,
-      annualLeaveTotal: 17,
-      annualLeaveTaken: 4,
-      annualLeaveRemaining: 13,
-      sickLeaveTotal: 7,
-      sickLeaveTaken: 6,
-      sickLeaveRemaining: 1,
+      annualLeaveTotal,
+      annualLeaveTaken,
+      annualLeaveRemaining: Math.max(0, annualLeaveTotal - annualLeaveTaken),
+      sickLeaveTotal,
+      sickLeaveTaken,
+      sickLeaveRemaining: Math.max(0, sickLeaveTotal - sickLeaveTaken),
     };
-  }, [attendance, selectedYear, selectedMonth]);
+  }, [attendance, selectedYear, selectedMonth, leavesData]);
 
   const presentPercent =
     stats.workingDays > 0 ? Math.round((stats.present / stats.workingDays) * 100) : 0;
@@ -656,12 +717,15 @@ export default function AttendanceScreen({ onNavigateDashboard }: AttendanceScre
 
         {/* ── Attendance Overview Card ────────────────────────────────────── */}
         <View className="bg- [#111111] border border-[#1e1e1e] rounded-2xl p-4 mb-4">
-          <Text className="text-[18px] font-black mb-3">
-            <Text className="text-white">
-              {monthLong} {selectedYear}{' '}
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-[18px] font-black">
+              <Text className="text-white">
+                {monthLong} {selectedYear}{' '}
+              </Text>
+              <Text className="text-[#888888] font-bold">Attendance Overview</Text>
             </Text>
-            <Text className="text-[#888888] font-bold">Attendance Overview</Text>
-          </Text>
+            {isLoading && <ActivityIndicator size="small" color="#3fc9f1" />}
+          </View>
 
           {/* % / # Toggle */}
           <View className="flex-row items-center justify-between mb-4">

@@ -55,9 +55,9 @@ export default function RootLayout() {
         <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
             <ToastProvider>
-              {/* <Initializer> */}
-              <Slot />
-              {/* </Initializer> */}
+              <Initializer>
+                <Slot />
+              </Initializer>
             </ToastProvider>
           </QueryClientProvider>
         </ErrorBoundary>

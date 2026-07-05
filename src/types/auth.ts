@@ -2,7 +2,13 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  nickName?: string;
   avatarUrl?: string;
+  dp?: string;
+  level?: string;
+  designations?: string[];
+  departments?: string[];
+  permissions?: string[];
 }
 
 export interface TokenResponse {
@@ -13,6 +19,19 @@ export interface TokenResponse {
 export interface AuthResponse {
   user: User;
   tokens: TokenResponse;
+}
+
+export interface BackendLoginResponse {
+  _id: string;
+  email: string;
+  name: string;
+  nickName?: string;
+  level: string;
+  dp?: string;
+  designations: string[];
+  departments: string[];
+  permissions: string[];
+  token: string;
 }
 
 export interface AuthState {

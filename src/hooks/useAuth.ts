@@ -12,8 +12,9 @@ export const useAuth = () => {
   const login = useCallback(async (email: string, password: string) => {
     try {
       const response = await authService.login(email, password);
-      // Save tokens to SecureStore
+      // Save token and user info to SecureStore
       await tokenService.saveTokens(response.tokens.accessToken, response.tokens.refreshToken);
+      await tokenService.saveUserInfo(response.user);
       // Update global Zustand state
       setAuth(response.user, response.tokens.accessToken);
       return response;
@@ -26,8 +27,9 @@ export const useAuth = () => {
   const register = useCallback(async (email: string, password: string, name: string) => {
     try {
       const response = await authService.register(email, password, name);
-      // Save tokens to SecureStore
+      // Save token and user info to SecureStore
       await tokenService.saveTokens(response.tokens.accessToken, response.tokens.refreshToken);
+      await tokenService.saveUserInfo(response.user);
       // Update global Zustand state
       setAuth(response.user, response.tokens.accessToken);
       return response;
@@ -36,6 +38,15 @@ export const useAuth = () => {
       throw error;
     }
   }, [setAuth]);
+
+  const forgotPassword = useCallback(async (email: string) => {
+    try {
+      return await authService.forgotPassword(email);
+    } catch (error) {
+      console.error('Forgot Password Error:', error);
+      throw error;
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -53,23 +64,10 @@ export const useAuth = () => {
     setInitializing(true);
     try {
       const token = await tokenService.getAccessToken();
-      const refreshToken = await tokenService.getRefreshToken();
+      const storedUser = await tokenService.getUserInfo();
       
-      if (token && refreshToken) {
-        // In a real application, you would verify the token with the server
-        // or attempt a quick user info fetch to validate.
-        // E.g.:
-        // const user = await authService.getCurrentUser();
-        // setAuth(user, token);
-
-        // For demonstration, let's load a mock user if tokens are found
-        const mockUser = {
-          id: '12345',
-          email: 'user@example.com',
-          name: 'Sheehan Rahman',
-          avatarUrl: 'https://i.imgur.com/E8eZ80Q.png',
-        };
-        setAuth(mockUser, token);
+      if (token && storedUser) {
+        setAuth(storedUser, token);
       } else {
         clearAuth();
       }
@@ -88,6 +86,7 @@ export const useAuth = () => {
     isInitializing,
     login,
     register,
+    forgotPassword,
     logout,
     initializeAuth,
   };

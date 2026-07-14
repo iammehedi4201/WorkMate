@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View, PanResponder } from 'react-native';
 import Animated, {
   interpolate,
   runOnJS,
@@ -34,11 +34,15 @@ export default function TopSheetDrawer({
 
   const drawerHeight = 390 + insets.bottom;
   const progress = useSharedValue(0);
+  const animatedHeight = useSharedValue(drawerHeight);
   const [isModalVisible, setIsModalVisible] = useState(isOpen);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsModalVisible(true);
+      animatedHeight.value = drawerHeight;
+      setIsFullScreen(false);
       progress.value = withTiming(1, { duration: 300 });
     } else {
       progress.value = withTiming(0, { duration: 300 }, finished => {
@@ -56,11 +60,47 @@ export default function TopSheetDrawer({
   });
 
   const drawerStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(progress.value, [0, 1], [drawerHeight, 0]);
+    const translateY = interpolate(progress.value, [0, 1], [animatedHeight.value, 0]);
     return {
+      height: animatedHeight.value,
       transform: [{ translateY }],
     };
   });
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const newHeight = drawerHeight - gestureState.dy;
+        if (newHeight <= SCREEN_HEIGHT) {
+          animatedHeight.value = Math.max(0, newHeight);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy < -100) {
+          animatedHeight.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
+          runOnJS(setIsFullScreen)(true);
+        } else if (gestureState.dy > 100) {
+          if (animatedHeight.value < drawerHeight - 50) {
+            runOnJS(onClose)();
+          } else {
+            animatedHeight.value = withTiming(drawerHeight, { duration: 250 });
+            runOnJS(setIsFullScreen)(false);
+          }
+        } else {
+          const midPoint = (drawerHeight + SCREEN_HEIGHT) / 2;
+          if (animatedHeight.value > midPoint) {
+            animatedHeight.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
+            runOnJS(setIsFullScreen)(true);
+          } else {
+            animatedHeight.value = withTiming(drawerHeight, { duration: 250 });
+            runOnJS(setIsFullScreen)(false);
+          }
+        }
+      },
+    })
+  ).current;
 
   const handleLogout = async () => {
     onClose();
@@ -100,12 +140,11 @@ export default function TopSheetDrawer({
             bottom: 0,
             left: 0,
             right: 0,
-            height: drawerHeight,
             backgroundColor: '#161616',
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
             paddingHorizontal: 24,
-            paddingTop: 32,
+            paddingTop: 8,
             paddingBottom: insets.bottom + 20,
             zIndex: 50,
             borderTopWidth: 1,
@@ -116,7 +155,24 @@ export default function TopSheetDrawer({
           },
           drawerStyle,
         ]}>
-        <View>
+        {/* Drag Handle */}
+        <View
+          {...panResponder.panHandlers}
+          style={{
+            alignItems: 'center',
+            paddingVertical: 12,
+            width: '100%',
+          }}>
+          <View
+            style={{
+              width: 40,
+              height: 5,
+              borderRadius: 2.5,
+              backgroundColor: '#444444',
+            }}
+          />
+        </View>
+        <View style={isFullScreen ? { flex: 1 } : null}>
           {/* Header */}
           <View className="flex-row items-center justify-between mb-6">
             <View className="flex-row items-center space-x-2">
@@ -125,7 +181,7 @@ export default function TopSheetDrawer({
                 style={{ width: 32, height: 32, marginRight: 8 }}
                 contentFit="contain"
               />
-              <Text className="text-white text-xl font-bold tracking-tight">My Ant App</Text>
+              <Text className="text-white text-xl font-bold tracking-tight mt-3">My Ant App</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -133,17 +189,6 @@ export default function TopSheetDrawer({
               <Ionicons name="close" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
-
-          {/* Select App Dropdown */}
-          {/* <View className="mb-6">
-            <TouchableOpacity
-              activeOpacity={0.8}
-              className="flex-row items-center justify-between bg-[#111111] border border-[#2a2a2a] px-4 py-3.5 rounded-xl"
-            >
-              <Text className="text-[#888888] font-medium text-[15px]">Select App</Text>
-              <Ionicons name="chevron-down" size={16} color="#888888" />
-            </TouchableOpacity>
-          </View> */}
 
           {/* Menu Items */}
           <View className="space-y-3">
@@ -176,17 +221,6 @@ export default function TopSheetDrawer({
               <Ionicons name="calendar-outline" size={20} color="#ffffff" className="mr-3" />
               <Text className="text-white font-bold text-[16px] ml-3">My Attendance</Text>
             </TouchableOpacity>
-
-            {/* Tournaments */}
-            {/* <TouchableOpacity
-              activeOpacity={0.8}
-              className="flex-row items-center justify-between px-4 py-3.5 rounded-xl">
-              <View className="flex-row items-center">
-                <Ionicons name="trophy-outline" size={20} color="#ffffff" className="mr-3" />
-                <Text className="text-white font-bold text-[16px] ml-3">Tournaments</Text>
-              </View>
-              <Ionicons name="chevron-down" size={16} color="#ffffff" />
-            </TouchableOpacity> */}
           </View>
         </View>
 

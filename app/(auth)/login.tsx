@@ -53,7 +53,7 @@ export default function LoginScreen() {
     mutationFn: async (data: LoginFormValues) => {
       return await login(data.email, data.password);
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       showToast(`Welcome back, ${data.user.name || 'User'}!`, 'success');
     },
     onError: (error: Error) => {
@@ -79,54 +79,60 @@ export default function LoginScreen() {
             }}
             style={{ backgroundColor: '#1a1a1a' }}
             keyboardShouldPersistTaps="handled">
-
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingHorizontal: 24,
-              paddingVertical: 48,
-            }}>
-
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 24,
+                paddingVertical: 48,
+              }}>
               {/* Header: Logo + Title */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 40,
+                }}>
                 <Image
                   source={require('../../assets/logo.png')}
-                  style={{ width: 52, height: 52, resizeMode: 'contain' }}
+                  style={{ width: 40, height: 40, resizeMode: 'contain' }}
                 />
-                <Text style={{
-                  color: '#ffffff',
-                  fontSize: 22,
-                  fontWeight: '700',
-                  marginLeft: 12,
-                  letterSpacing: 0.3,
-                }}>
-                  Login Ant App
+                <Text
+                  style={{
+                    color: '#ffffff',
+                    fontSize: 22,
+                    fontWeight: '700',
+                    marginLeft: 5,
+                    marginTop: 10,
+                    letterSpacing: 0.3,
+                  }}>
+                  Ant App
                 </Text>
               </View>
 
               {/* Card */}
-              <View style={{
-                width: '100%',
-                backgroundColor: '#232323',
-                borderRadius: 16,
-                padding: 24,
-              }}>
-
+              <View
+                style={{
+                  width: '100%',
+                  backgroundColor: '#232323',
+                  borderRadius: 16,
+                  padding: 24,
+                }}>
                 {/* Email Field */}
                 <Controller
                   control={control}
                   name="email"
                   render={({ field: { onChange, value } }) => (
-                    <View
-                      style={{ marginBottom: 20 }}
-                      onLayout={handleFieldLayout('email')}>
-                      <Text style={{
-                        color: '#ffffff',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        marginBottom: 8,
-                      }}>
+                    <View style={{ marginBottom: 20 }} onLayout={handleFieldLayout('email')}>
+                      <Text
+                        style={{
+                          color: '#ffffff',
+                          fontSize: 14,
+                          fontWeight: '700',
+                          marginBottom: 8,
+                        }}>
                         Email
                       </Text>
                       <TextInput
@@ -165,25 +171,25 @@ export default function LoginScreen() {
                   control={control}
                   name="password"
                   render={({ field: { onChange, value } }) => (
-                    <View
-                      style={{ marginBottom: 8 }}
-                      onLayout={handleFieldLayout('password')}>
-                      <Text style={{
-                        color: '#ffffff',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        marginBottom: 8,
-                      }}>
+                    <View style={{ marginBottom: 8 }} onLayout={handleFieldLayout('password')}>
+                      <Text
+                        style={{
+                          color: '#ffffff',
+                          fontSize: 14,
+                          fontWeight: '700',
+                          marginBottom: 8,
+                        }}>
                         Password
                       </Text>
-                      <View style={{
-                        backgroundColor: '#2c2c2c',
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: errors.password ? '#ef4444' : '#3a3a3a',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                      }}>
+                      <View
+                        style={{
+                          backgroundColor: '#2c2c2c',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: errors.password ? '#ef4444' : '#3a3a3a',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}>
                         <TextInput
                           ref={passwordRef}
                           value={value}
@@ -237,9 +243,9 @@ export default function LoginScreen() {
                     opacity: loginMutation.isPending ? 0.7 : 1,
                   }}>
                   {loginMutation.isPending ? (
-                    <ActivityIndicator color="#c8930a" size="small" />
+                    <ActivityIndicator color="#1a1a1a" size="small" />
                   ) : (
-                    <Text style={{ color: '#c8930a', fontSize: 15, fontWeight: '700' }}>Login</Text>
+                    <Text style={{ color: '#1a1a1a', fontSize: 15, fontWeight: '700' }}>Login</Text>
                   )}
                 </TouchableOpacity>
 
@@ -247,9 +253,10 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   onPress={() => router.push('/(auth)/forgot-password')}
                   style={{ alignSelf: 'flex-end', marginTop: 14 }}>
-                  <Text style={{ color: '#c8930a', fontSize: 13 }}>Forgot password?</Text>
+                  <Text style={{ color: '#fff', fontSize: 13, textDecorationLine: 'underline' }}>
+                    Forgot password?
+                  </Text>
                 </TouchableOpacity>
-
               </View>
             </View>
           </ScrollView>

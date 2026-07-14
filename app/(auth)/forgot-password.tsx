@@ -73,54 +73,60 @@ export default function ForgotPasswordScreen() {
             }}
             style={{ backgroundColor: '#1a1a1a' }}
             keyboardShouldPersistTaps="handled">
-
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingHorizontal: 24,
-              paddingVertical: 48,
-            }}>
-
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 24,
+                paddingVertical: 48,
+              }}>
               {/* Header: Logo + Title */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 40,
+                }}>
                 <Image
                   source={require('../../assets/logo.png')}
-                  style={{ width: 52, height: 52, resizeMode: 'contain' }}
+                  style={{ width: 40, height: 40, resizeMode: 'contain' }}
                 />
-                <Text style={{
-                  color: '#ffffff',
-                  fontSize: 22,
-                  fontWeight: '700',
-                  marginLeft: 12,
-                  letterSpacing: 0.3,
-                }}>
-                  Forgot Password Ant App
+                <Text
+                  style={{
+                    color: '#ffffff',
+                    fontSize: 22,
+                    fontWeight: '700',
+                    marginLeft: 5,
+                    marginTop: 10,
+                    letterSpacing: 0.3,
+                  }}>
+                  Ant App
                 </Text>
               </View>
 
               {/* Card */}
-              <View style={{
-                width: '100%',
-                backgroundColor: '#232323',
-                borderRadius: 16,
-                padding: 24,
-              }}>
-
+              <View
+                style={{
+                  width: '100%',
+                  backgroundColor: '#232323',
+                  borderRadius: 16,
+                  padding: 24,
+                }}>
                 {/* Email Field */}
                 <Controller
                   control={control}
                   name="email"
                   render={({ field: { onChange, value } }) => (
-                    <View
-                      style={{ marginBottom: 24 }}
-                      onLayout={handleFieldLayout('email')}>
-                      <Text style={{
-                        color: '#ffffff',
-                        fontSize: 14,
-                        fontWeight: '700',
-                        marginBottom: 8,
-                      }}>
+                    <View style={{ marginBottom: 24 }} onLayout={handleFieldLayout('email')}>
+                      <Text
+                        style={{
+                          color: '#ffffff',
+                          fontSize: 14,
+                          fontWeight: '700',
+                          marginBottom: 8,
+                        }}>
                         Email
                       </Text>
                       <TextInput
@@ -167,24 +173,29 @@ export default function ForgotPasswordScreen() {
                     opacity: resetMutation.isPending ? 0.7 : 1,
                   }}>
                   {resetMutation.isPending ? (
-                    <ActivityIndicator color="#c8930a" size="small" />
+                    <ActivityIndicator color="#1a1a1a" size="small" />
                   ) : (
-                    <Text style={{ color: '#c8930a', fontSize: 15, fontWeight: '600' }}>
+                    <Text style={{ color: '#1a1a1a', fontSize: 15, fontWeight: '600' }}>
                       Send Reset Link
                     </Text>
                   )}
                 </TouchableOpacity>
 
                 {/* Back to Login */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14, alignItems: 'center' }}>
-                  <Text style={{ color: '#c8930a', fontSize: 13 }}>Want to sign in? </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'flex-end',
+                    marginTop: 14,
+                    alignItems: 'center',
+                  }}>
+                  <Text style={{ color: '#fff', fontSize: 13 }}>Want to sign in? </Text>
                   <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-                    <Text style={{ color: '#c8930a', fontSize: 13, textDecorationLine: 'underline' }}>
+                    <Text style={{ color: '#fff', fontSize: 13, textDecorationLine: 'underline' }}>
                       Login
                     </Text>
                   </TouchableOpacity>
                 </View>
-
               </View>
             </View>
           </ScrollView>

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build & Expo
+.expo/
+dist/
+web-build/
+android/
+ios/
+out/
+build/
+
+# IDE & Configs
+.vscode/
+.idea/
+.git/
+graphify-out/
+
+# Assets & Media
+assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.mp4
+*.mp3
+*.wav
+
+# System & Temp
+.DS_Store
+*.log
+*.tmp
+*.temp
